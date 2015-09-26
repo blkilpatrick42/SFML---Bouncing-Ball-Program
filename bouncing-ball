@@ -1,0 +1,293 @@
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+#include <stdlib.h>
+#include <iostream>
+using namespace std;
+int main()
+{
+    int wSizeX = 500;
+    int wSizeY = 500;
+    sf::RenderWindow window(sf::VideoMode(wSizeX, wSizeY), "OK BUB");
+    //DEFINE GAME OBJECTS AND ASSETS
+    sf::CircleShape shape(25.f);
+    sf::Texture man;
+    sf::Texture dojo;
+    sf::Music music;
+    sf::SoundBuffer buffer;
+    sf::Sound sound;
+    //LOADS GAME ASSETS
+    music.openFromFile("kayrateTune.wav");
+    man.loadFromFile("kayrateSheet.png");
+    dojo.loadFromFile("dojo.png");
+    sf::Sprite dude;
+    sf::Sprite background;
+    dude.setTexture(man);
+    shape.setFillColor(sf::Color::Green);
+    //STARTING POSITION FOR THE BALL
+    shape.setOrigin(-200.0,-100.0);
+    //XMOVE MODELS THE RATE OF MOTION ON THE X AXIS
+    float xMove = 0.3;
+    //YMOVE MODELS THE RATE OF MOTION ON THE Y AXIS
+    float yMove = 0.0;
+    //MOVENM MODELS THE NEGATIVE BOUND OF RATE OF MOTION
+    float MoveNM =-1.3;
+    //MOVEPM MODELS THE POSITIVE BOUND RATE OF MOTION
+    float MovePM =1.3;
+    //COUNTER FOR THE NUMBER OF BOUNCES THE BALL HAS TAKEN SINCE
+    //ITS Y MOTION LAST EQUALED 0
+    float bounces = 0;
+    //CONSTANT FOR FRICTION
+    float friction = 0.001;
+    //CONSTANT FOR GRAVITY
+    float gravity = 0.004;
+    //MODE TOGGLES
+    bool faceRight = false;
+    bool ballmode = true;
+    bool soundmode = false;
+    bool backgroundmode = false;
+    background.setTexture(dojo);
+    //music.play();
+    //music.setLoop(true);
+    while (window.isOpen())
+    {
+        //THE KAYRATEMAN SPRITE IS SIMPLY AN OVERLAY OF THE BALL SHAPE
+        //HERE, IT SETS THE KAYRATEMAN SPRITE TO OCCUPY WHATEVER SPACE
+        //THE BALL OCCUPIES
+        dude.setOrigin(shape.getOrigin());
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+            if (event.type == sf::Event::KeyPressed)
+            {
+                //JUMP
+                if (event.key.code == sf::Keyboard::W)
+                {
+                    if(soundmode)
+                    {
+                        buffer.loadFromFile("jump.wav");
+                        sound.setBuffer(buffer);
+                        sound.play();
+                    }
+                    yMove=1.0;
+                }
+                //DODGE LEFT
+                if (event.key.code == sf::Keyboard::A)
+                {
+                    if(shape.getOrigin().x<0)
+                    {
+                        xMove=0.6;
+                    }
+                }
+                //DODGE RIGHT
+                if (event.key.code == sf::Keyboard::D)
+                {
+                    if(shape.getOrigin().x-2*shape.getRadius()>-wSizeX)
+                    {
+                        xMove=-0.6;
+                    }
+                }
+                //TOGGLE BALL MODE
+                if (event.key.code == sf::Keyboard::Q)
+                {
+                    ballmode=!ballmode;
+
+                }
+                //TOGGLE BACKGROUND
+                if (event.key.code == sf::Keyboard::E)
+                {
+                    backgroundmode=!backgroundmode;
+
+                }
+                //TOGGLE SOUND
+                if (event.key.code == sf::Keyboard::R)
+                {
+                    soundmode=!soundmode;
+
+                }
+            }
+        }
+
+        window.clear();
+        //IF ITS IN BACKGROUND MODE IT WILL DRAW THE BACKGROUND
+        if(backgroundmode)
+        {
+            window.draw(background);
+        }
+        //IF ITS IN BALL MODE IT WILL DRAW THE BALL
+        if(ballmode)
+        {
+            window.draw(shape);
+        }
+        //IF ITS NOT IN BALL MODE IT WILL DRAW KAYRATE MAN
+        else
+        {
+            window.draw(dude);
+        }
+        window.display();
+        //IF THE BALL HAS MOMENTUM TO THE LEFT, KAYRATEMAN FACES LEFT
+        if(xMove>0)
+        {
+            faceRight = false;
+        }
+        //IF THE BALL HAS MOMENTUM TO THE RIGHT, KAYRATEMAN FACES RIGHT
+        if(xMove<0)
+        {
+            faceRight = true;
+        }
+        //IF THE BALL IS NOT IN THE AIR AND KAYRATREMAN DOES NOT FACE RIGHT, DRAW HIM STILL FACING LEFT
+        if(yMove==0&&!faceRight)
+        {
+            dude.setTextureRect(sf::IntRect(0, 0, 50, 50));
+        }
+        //ELSE IF THE BALL IS NOT IN THE AIR AND KAYRATEMAN DOES FACE RIGHT, DRAW HIM STILL FACING RIGHT
+        else if (yMove==0&&faceRight)
+        {
+            dude.setTextureRect(sf::IntRect(50, 0, 49, 50));
+        }
+        //ELSE IF THE BALL IS IN THE AIR AND KAYRATEMAN DOES NOT FACE RIGHT, DRAW HIM IN MOTION FACING LEFT
+        else if(yMove!=0&&!faceRight)
+        {
+            dude.setTextureRect(sf::IntRect(100, 0, 50, 50));
+        }
+        //ELSE IF THE BALL IS IN THE AIR AND KAYRATEMAN DOES FACE RIGHT, DRAW HIM IN MOTION FACING RIGHT
+        else if (yMove!=0&&faceRight)
+        {
+            dude.setTextureRect(sf::IntRect(150, 0, 50, 50));
+        }
+        //THIS BIT TAKES THE ORIGIN OF THE BALL (THE UPPER LEFT CORNER) AND ADDS TO IT'S POSITION
+        //ANY MOTION ON THE X OR Y AXIS
+        shape.setOrigin(shape.getOrigin().x+xMove,shape.getOrigin().y+yMove);
+        //RESETS THE NUMBER OF BOUNCES IF THERE IS NO MOTION ON THE Y AXIS
+        if(yMove==0)
+        {
+            bounces = 0;
+        }
+        //CHECKS TO SEE IF THE BALL IS UP AGAINST THE RIGHT WALL
+        if(shape.getOrigin().x-2*shape.getRadius()<-wSizeX)
+        {
+            //IF IT IS, X MOTION IS REVERSED
+            xMove = (-1)*xMove;
+            //IF SOUND IS ON, THE BUMP SOUND IS PLAYED
+            if(soundmode)
+            {
+                buffer.loadFromFile("bump.wav");
+                sound.setBuffer(buffer);
+                sound.play();
+            }
+
+        }
+        //CHECKS TO SEE IF THE BALL IS UP AGAINST THE LEFT WALL
+        if(shape.getOrigin().x>0)
+        {
+            //IF IT IS, X MOTION IS REVERSED
+            xMove = (-1)*xMove;
+            //IF SOUND IS ON, THE BUMP SOUND IS PLAYED
+            if(soundmode)
+            {
+                buffer.loadFromFile("bump.wav");
+                sound.setBuffer(buffer);
+                sound.play();
+            }
+
+
+        }
+        //CHECKS TO SEE IF THE BALL HAS CONTACTED THE GROUND (BOTTOM OF THE SCREEN) WITH
+        // A DOWNWARD MOTION
+        if(shape.getOrigin().y-2*shape.getRadius()<-wSizeY&&yMove<0)
+        {
+            //IF SOUND IS ON, PLAYS THE BUMP SOUND
+            if(soundmode)
+            {
+                buffer.loadFromFile("bump.wav");
+                sound.setBuffer(buffer);
+                sound.play();
+            }
+            //INCREMENTS THE NUMBER OF BOUNCES
+            bounces++;
+            //Y MOTION IS REVERSED, RESULTING IN A BOUNCE UPWARDS. AS THE NUMBER OF BOUNCES INCREASES BEFORE
+            //THE BALL BECOMES STILL AGAIN, THE AMOUNT OF UPWARD MOTION FOR EACH BOUNCE DECAYS BY A FACTOR OF
+            // BOUNCES/10
+            yMove = (-1)*yMove-((bounces/10));
+            //IF THE BALL IS STRILL AGAINST THE GROUND WITH NEGATIVE (DOWNWARD) SPEED, THE SPEED IS
+            //CANCELED TO 0
+            if(yMove<0)
+            {
+                yMove = 0;
+                cout << bounces << "bounces" <<endl;
+                if(!faceRight)
+                {
+                    dude.setTextureRect(sf::IntRect(0, 0, 50, 50));
+                }
+                else if (faceRight)
+                {
+                    dude.setTextureRect(sf::IntRect(50, 0, 49, 50));
+                }
+
+            }
+            //CHECKS TO SEE IF THE BALL HAS MOTION TO THE LEFT OR RIGHT (ON THE X AXIS)
+            if(xMove!=0)
+            {
+                //IF SO, IT DECREMENTS IT BY THE AMOUNT OF PREDEFINED FRICTION
+                //IF THE MOTION ON THE X AXIS IS IN A CERTAIN AREA BETWEEN
+                //POSITIVE AND NEGATIVE FRICTION, IT IS SIMPLY CANCELED TO ZERO
+                //THIS PREVENTS THE BALL FROM ENDING UP IN A SITUATION WHERE IT MIGHT
+                //ROLL BACK AND FORTH FOREVER
+                if((-friction<=xMove)&&(xMove<=friction))
+                {
+                    xMove=0;
+                }
+                if(xMove>0)
+                {
+                    xMove-=friction;
+                }
+                if(xMove<0)
+                {
+                    xMove+=friction;
+                }
+            }
+
+            cout << yMove << endl;
+
+        }
+        //CHECKS TO SEE IF THE BALL CONTACTS THE GROUND WITHOUT *ANY Y MOTION*
+        else if(shape.getOrigin().y-2*shape.getRadius()<-wSizeY)
+        {
+            //IF SO, DECREMENTS X MOTION BY FRICTION AS DESCRIBED ABOVE
+            if(xMove!=0)
+            {
+                if((-friction<=xMove)&&(xMove<=friction))
+                {
+                    xMove=0;
+                }
+                if(xMove>0)
+                {
+                    xMove-=friction;
+                }
+                if(xMove<0)
+                {
+                    xMove+=friction;
+                }
+            }
+
+
+        }
+        //CHECKS IF THE BALL IS CONTACTING THE CEILING (TOP OF THE SCREEN)
+        if(shape.getOrigin().y>0)
+        {
+            //IF SO, IT REVERSES Y MOTION
+            yMove = (-1)*yMove;
+
+        }
+        //THIS LITTLE BIT LOOSELY MODELS GRAVITY
+        //IT CHECKS TO SEE IF THE BALL IS IN THE AIR
+        if((yMove>MoveNM)&&(shape.getOrigin().y-2*shape.getRadius()>-wSizeY))
+        {
+            //AND IF SO, IT ADDS TO IT'S NEGATIVE MOTION
+            yMove-=gravity;
+        }
+    }
+
+    return 0;
+}
