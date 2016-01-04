@@ -1,2 +1,2 @@
 # sfmlStuff
-Repository with stuff I've made dicking around in SFML.
+Repository with stuff I've made messing around in SFML.
